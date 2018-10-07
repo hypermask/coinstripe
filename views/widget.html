@@ -172,6 +172,14 @@
 
     <form  class="app" action="/charge" method="post" id="payment-form">
 
+      {{#if error}}
+        <div class="header" id="overview" >
+            <button id="close" onclick="quit()">&times;</button>
+            <h1>Error</h1>
+
+            <p>{{error}}</p>
+        </div>
+      {{else}}
         <div class="header" id="overview" >
             <button id="close" onclick="quit()">&times;</button>
             <h1>Confirm purchase</h1>
@@ -212,7 +220,7 @@
         <button class="footer" type="submit" id="buy" style="display: none">
             Pay ${{ usd_amount }}
         </button>
-
+      {{/if}}
 
 </form>
 

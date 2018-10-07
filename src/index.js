@@ -91,18 +91,16 @@ async function getETHUSDPrice(){
 }
 
 
-
-
 app.get('/widget', async (req, res) => {
-    // TODO: validate that the address, amount, and other user inputs
-    // are properly sanitized and escaped
+    try {
     let ethPrice = await getETHUSDPrice();
     const usdAmount = req.query.amount;
     const ethAmount = usdAmount / ethPrice;
 
-    // console.assert(+usdAmount < 25, 'Transaction can not be more than $25')
+    if(usdAmount > 25)
+        throw new Error('Transaction can not be more than $25');
 
-    const data = {
+    var data = {
         stripe_key: process.env.STRIPE_CLIENT_KEY,
         eth_address: req.query.address,
         eth_amount: ethAmount,
@@ -116,12 +114,18 @@ app.get('/widget', async (req, res) => {
 
     const BN = x => web3.utils.toBN(x || '0');
 
-    let weiAmount = web3.utils.toWei(ethAmount.toString(), 'ether');
+    let weiAmount = Math.round(ethAmount * 1e18).toString();
 
     if(BN(currentBalance).lt(BN(weiAmount))){
         throw new Error('insufficient funds')
     }
 
+
+    } catch (err) {
+        var data = {
+            error: err.message
+        }
+    }
 
     res.render('widget', {
         ...data,
@@ -136,19 +140,20 @@ app.post('/charge', async (req, res) => {
 
     console.log(ethPrice);
     console.log(req.body)
-    let amount = req.body.usd_amount;
-    const ethAmount = amount / ethPrice;
-    console.assert(amount < 25, 'Transaction can not be more than $25')
+    let usdAmount = req.body.usd_amount;
+    const ethAmount = usdAmount / ethPrice;
+    
+    if(usdAmount > 25)
+        throw new Error('Transaction can not be more than $25');
+
     console.assert(ethAmount < 1, 'ETH amount can not be more than 1 ETH')
 
     const charge = await stripe.charges.create({
-        amount: amount * 100,
+        amount: usdAmount * 100,
         currency: 'usd',
         description: 'ETH Smart Contract ' + req.body.source,
         source: req.body.token,
     });
-
-
 
     console.log(charge)
     const recipientAddress = req.body.address;
