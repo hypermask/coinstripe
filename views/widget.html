@@ -158,7 +158,7 @@
 }
 
 #card-errors {
-  
+
     margin-top: 20px;
     font-size: small;
     opacity: 0.8;
@@ -217,7 +217,9 @@
 </form>
 
 <script type="text/javascript">
-const stripe = Stripe("{{ STRIPE_KEY }}");
+const data = JSON.parse(atob("{{{ b64json }}}"))
+
+const stripe = Stripe(data.stripe_key);
 var elements = stripe.elements();
 
 // Custom styling can be passed to options when creating an Element.
@@ -282,9 +284,10 @@ function handleToken(token) {
     method: "POST",
     body: JSON.stringify({
       token: token.id,
-      usd_amount: "{{usd_amount}}",
-      address: "{{eth_address}}",
-      source: "{{source}}"
+      usd_amount: data.usd_amount,
+      address: data.eth_address,
+      source: data.source,
+      chain: data.chain
     }),
     headers: { "content-type": "application/json" }
   })
