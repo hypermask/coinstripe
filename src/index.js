@@ -45,18 +45,22 @@ var web3 = new Web3(
     new Web3.providers.HttpProvider('https://ropsten.infura.io/')
 );
 
-async function sendRaw(rawTx) {
-    var privateKey = new Buffer(process.env.ETHEREUM_KEY, 'hex');
-    var transaction = new Tx(rawTx);
-    transaction.sign(privateKey);
-    var serializedTx = '0x' + transaction.serialize().toString('hex');
-    return await web3.eth.sendSignedTransaction(serializedTx)
+function sendRaw(rawTx) {
+    return new Promise((resolve, reject) => {
+        var privateKey = new Buffer(process.env.ETHEREUM_KEY, 'hex');
+        var transaction = new Tx(rawTx);
+        transaction.sign(privateKey);
+        var serializedTx = '0x' + transaction.serialize().toString('hex');
+        web3.eth.sendSignedTransaction(serializedTx).on('transactionHash', th => {
+            resolve(th)
+        })    
+    })
 }
 
 
 async function sendToAddress(amount, recipientAddress){
     console.log(`Sending ${amount} wei to ${recipientAddress}`)
-    return await sendRaw({
+    return sendRaw({
         "from": process.env.ETHEREUM_ADDRESS, 
         "gasPrice": web3.utils.numberToHex(await web3.eth.getGasPrice()),
         "gasLimit": web3.utils.toHex(210000), // 21,000 is standard tx gas limit
@@ -96,13 +100,12 @@ app.get('/widget', async (req, res) => {
 
 app.post('/charge', async (req, res) => {
     let ethPrice = await getETHUSDPrice();
-
     console.log(ethPrice);
-
     console.log(req.body)
     let amount = req.body.usd_amount;
-
+    const ethAmount = amount / ethPrice;
     console.assert(amount < 25, 'Transaction can not be more than $25')
+    console.assert(ethAmount < 1, 'ETH amount can not be more than 1 ETH')
 
     const charge = await stripe.charges.create({
         amount: amount * 100,
@@ -111,21 +114,18 @@ app.post('/charge', async (req, res) => {
         source: req.body.token,
     });
 
-    const ethAmount = amount / ethPrice;
-
     console.log(charge)
     const recipientAddress = req.body.address;
 
-    let result = await sendToAddress(
+    let transactionHash = await sendToAddress(
         web3.utils.toWei(ethAmount.toString(), 'ether'), 
         recipientAddress)
 
-    console.log(result)
+    // console.log(result)
 
     res.end(JSON.stringify({
-        transactionHash: result.transactionHash
+        transactionHash: transactionHash
     }))
-    // res.redirect('/widget')
 })
 
 app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0');
