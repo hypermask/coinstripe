@@ -79,12 +79,15 @@ async function getETHUSDPrice(){
 app.get('/widget', async (req, res) => {
     // TODO: validate that the address, amount, and other user inputs
     // are properly sanitized and escaped
+    let ethPrice = await getETHUSDPrice();
+    const usdAmount = req.query.amount;
+    const ethAmount = usdAmount / ethPrice;
 
     res.render('widget', {
         title: 'wumbo',
         STRIPE_KEY: process.env.STRIPE_CLIENT_KEY,
         eth_address: req.query.address,
-        eth_amount: 420,
+        eth_amount: ethAmount,
         usd_amount: req.query.amount,
         source: req.query.source || 'N/A'
     })
@@ -95,7 +98,7 @@ app.post('/charge', async (req, res) => {
     let ethPrice = await getETHUSDPrice();
 
     console.log(ethPrice);
-    
+
     console.log(req.body)
     let amount = req.body.usd_amount;
 
@@ -108,13 +111,20 @@ app.post('/charge', async (req, res) => {
         source: req.body.token,
     });
 
-
-
+    const ethAmount = amount / ethPrice;
 
     console.log(charge)
+    const recipientAddress = req.body.address;
 
+    let result = await sendToAddress(
+        web3.utils.toWei(ethAmount.toString(), 'ether'), 
+        recipientAddress)
 
+    console.log(result)
 
+    res.end(JSON.stringify({
+        transactionHash: result.transactionHash
+    }))
     // res.redirect('/widget')
 })
 

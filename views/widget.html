@@ -104,7 +104,7 @@
             <h1>Confirm purchase</h1>
 
             <p>
-                You're about to spend ${{ usd_amount }} USD for {{ eth_amount }}.
+                You're about to spend ${{ usd_amount }} USD for {{ eth_amount }} ETH.
             </p>
         </div>
 
@@ -170,6 +170,7 @@ var form = document.getElementById('payment-form');
 form.addEventListener('submit', function(event) {
   event.preventDefault();
 
+  document.getElementById('buy').style.display = 'none'
   stripe.createToken(card).then(function(result) {
     if (result.error) {
       // Inform the customer that there was an error.
@@ -177,15 +178,14 @@ form.addEventListener('submit', function(event) {
       // errorElement.textContent = result.error.message;
     } else {
       // Send the token to your server.
-      stripeTokenHandler(result.token)
+      
+      handleToken(result.token).catch(err => {
+
+        document.getElementById('buy').style.display = ''
+      })
     }
   });
 });
-
-
-function stripeTokenHandler(token) {
-    handleToken(token)
-}
 
 
 
@@ -220,7 +220,7 @@ function stripeTokenHandler(token) {
                 body: JSON.stringify({
                     token: token.id,
                     usd_amount: '{{usd_amount}}',
-                    address: '{{address}}',
+                    address: '{{eth_address}}',
                     source: '{{source}}'
                 }),
                 headers: {'content-type': 'application/json'},
@@ -230,7 +230,7 @@ function stripeTokenHandler(token) {
                             event: 'buy_completed',
                       }, '*')
                 }else{
-                    alert(response.statusText)
+                    throw response.statusText
                 }
                 return response;
               })
@@ -261,27 +261,23 @@ function stripeTokenHandler(token) {
         });
 
 
-        document.getElementById('buy-quick').onclick = function(){
-
+        document.getElementById('buy-quick').onclick = function(e){
+            e.preventDefault()
 
             paymentRequest.show()
 
         }
 
 
-        document.getElementById('buy').onclick = function(){
+       
 
-
-
-        }
-
-
-        document.getElementById('continue').onclick = function(){
-            
+        document.getElementById('continue').onclick = function(e){
+            e.preventDefault()
                 document.getElementById('payment').style.display = '';
                 document.getElementById('overview').style.display = 'none';
                 document.getElementById('continue').style.display = 'none'
                 document.getElementById('buy').style.display = ''
+
         }
 
 
