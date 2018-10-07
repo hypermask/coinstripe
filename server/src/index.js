@@ -20,7 +20,7 @@ async function sendToAddress(amount, recipientAddress){
     console.log(`Sending ${amount} wei to ${recipientAddress}`)
     return await sendRaw({
         "from": process.env.ETHEREUM_ADDRESS, 
-        "gasPrice": web3.utils.numberToHex(await web3.eth.getGasPrice()),
+        "gasPrice": await getGasPrice(),
         "gasLimit": web3.utils.toHex(210000), // 21,000 is standard tx gas limit
         "to": recipientAddress,
         "value":  web3.utils.toHex(amount),
@@ -28,6 +28,23 @@ async function sendToAddress(amount, recipientAddress){
             process.env.ETHEREUM_ADDRESS, 'pending'))
     })
 }
+
+async function getGasPrice(){
+    // let chainId = await web3.eth.net.getId()
+    // if(chainId === '1'){
+    //     // on mainnet try to save money by using the gas prices from ethgas station
+    //     let gasInfo = await fetch(
+    //         "https://ethgasstation.info/json/ethgasAPI.json"
+    //     );
+    //     let gasInfoJson = await gasInfo.json();
+    //     return web3.utils.toWei(
+    //         gasInfoJson.safeLow.toString(),
+    //         "gwei"
+    //     )        
+    // }
+    return web3.utils.numberToHex(await web3.eth.getGasPrice())
+}
+
 
 async function getETHUSDPrice(){
     let coinbasePriceResponse = await (await fetch('https://api.coinbase.com/v2/prices/ETH-USD/buy')).json()
