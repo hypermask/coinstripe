@@ -2,5 +2,16 @@
   "name": "coinstripe-server",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT"
+  "scripts": {
+    "start": "babel-node src/index.js",
+    "dev": "nodemon --exec babel-node src/index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@babel/node": "^7.0.0",
+    "@babel/preset-stage-1": "^7.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.4"
+  }
 }
