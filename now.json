@@ -1,0 +1,8 @@
+{
+  "env": {
+    "ETHEREUM_ADDRESS": "@ethereum-address",
+    "ETHEREUM_KEY": "@ethereum-key",
+    "STRIPE_CLIENT_KEY": "@stripe-client-key",
+    "STRIPE_SERVER_KEY": "@stripe-server-key",
+  }
+}
