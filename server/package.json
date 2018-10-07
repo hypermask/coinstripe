@@ -1,15 +1,18 @@
 {
   "name": "coinstripe-server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/bootstrap.js",
   "scripts": {
-    "start": "babel-node src/index.js",
-    "dev": "nodemon --exec babel-node src/index.js"
+    "start": "micro",
+    "dev": "micro-dev"
   },
   "license": "MIT",
   "dependencies": {
     "@babel/node": "^7.0.0",
-    "@babel/preset-stage-1": "^7.0.0"
+    "@babel/preset-stage-1": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "micro": "^9.3.3",
+    "micro-dev": "^3.0.0"
   },
   "devDependencies": {
     "nodemon": "^1.18.4"

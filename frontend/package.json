@@ -5,7 +5,7 @@
   "repository": "https://github.com/hypermask/coinstripe.git",
   "author": "Hypermask Team <team@hypermask.io>",
   "scripts": {
-    "start": "parcel -p 51159 index.html",
+    "start": "parcel -p 7777 index.html",
     "build": "parcel build -d ../firebase/public/demo index.html"
   },
   "license": "MIT",
