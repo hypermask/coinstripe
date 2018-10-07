@@ -148,6 +148,17 @@ app.post('/charge', async (req, res) => {
 
     console.assert(ethAmount < 1, 'ETH amount can not be more than 1 ETH')
 
+
+    let currentBalance = await web3.eth.getBalance(process.env.ETHEREUM_ADDRESS, 'pending');
+
+    const BN = x => web3.utils.toBN(x || '0');
+
+    let weiAmount = Math.round(ethAmount * 1e18).toString();
+
+    if(BN(currentBalance).lt(BN(weiAmount))){
+        throw new Error('insufficient funds')
+    }
+
     const charge = await stripe.charges.create({
         amount: usdAmount * 100,
         currency: 'usd',
