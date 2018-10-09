@@ -19,3 +19,8 @@ Then we need to add in the client key and server keys for stripe
 To deploy the application, just type
 
     now
+
+
+# Warnings
+
+Coinstripe is experimental software and has not been independently audited. Do not use this with real money.
