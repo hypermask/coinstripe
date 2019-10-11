@@ -1,9 +1,13 @@
 {
-  "env": {
-    "ETHEREUM_ADDRESS": "@ethereum-address",
-    "ETHEREUM_KEY": "@ethereum-key",
-    "STRIPE_CLIENT_KEY": "@stripe-client-key",
-    "STRIPE_SERVER_KEY": "@stripe-server-key",
-    "NODE_ENV": "production"
-  }
+    "env": {
+        "ETHEREUM_ADDRESS": "@ethereum-address",
+        "ETHEREUM_KEY": "@ethereum-key",
+        "STRIPE_CLIENT_KEY": "@stripe-client-key",
+        "STRIPE_SERVER_KEY": "@stripe-server-key",
+        "NODE_ENV": "production"
+    },
+    "version": 2,
+    "alias": ["coinstripe.hypermask.io"],
+    "builds": [{ "src": "src/index.js", "use": "@now/node" }],
+    "routes": [{ "src": "/(.*)", "dest": "/src/index.js" }]
 }

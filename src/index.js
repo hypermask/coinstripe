@@ -1,4 +1,3 @@
-import 'now-env'
 import express from 'express'
 import 'express-async-errors'
 import bodyParser from 'body-parser'
@@ -9,153 +8,145 @@ import errorHandler from 'errorhandler'
 
 import https from 'https'
 import fs from 'fs'
-    
-const stripe = require("stripe")(process.env.STRIPE_SERVER_KEY);
 
-const app = express();
+const stripe = require('stripe')(process.env.STRIPE_SERVER_KEY)
 
-app.set('views', path.join(__dirname, '../views'));
-app.set('view engine', 'html');
-app.engine('html', require('hbs').__express);
+const app = express()
 
-app.use(logger('dev'));
+app.set('views', path.join(__dirname, '../views'))
+app.set('view engine', 'html')
+app.engine('html', require('hbs').__express)
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(logger('dev'))
 
-app.use('/', express.static(path.join(__dirname, '../static')));
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
-app.disable('x-powered-by');
+app.use('/', express.static(path.join(__dirname, '../static')))
+
+app.disable('x-powered-by')
 
 if (app.get('env') === 'development') {
-    app.use(errorHandler());
+    app.use(errorHandler())
 } else {
     app.use((err, req, res, next) => {
-        console.error(err);
-        res.status(500).send('Server Error');
-    });
+        console.error(err)
+        res.status(500).send('Server Error')
+    })
 }
-
 
 import Web3 from 'web3'
 import Tx from 'ethereumjs-tx'
 import fetch from 'isomorphic-fetch'
 
-var web3Ropsten = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io/'));
-var web3Main = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/'));
-var web3Rinkeby = new Web3(new Web3.providers.HttpProvider('https://rinkeby.infura.io/'));
-var web3Kovan = new Web3(new Web3.providers.HttpProvider('https://kovan.infura.io/'));
+var web3Ropsten = new Web3(new Web3.providers.HttpProvider('https://ropsten.infura.io/'))
+var web3Main = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/'))
+var web3Rinkeby = new Web3(new Web3.providers.HttpProvider('https://rinkeby.infura.io/'))
+var web3Kovan = new Web3(new Web3.providers.HttpProvider('https://kovan.infura.io/'))
 
-
-function getWeb3(chain){
-    if(chain === 'ropsten') return web3Ropsten;
-    if(chain === 'mainnet') return web3Main;
-    if(chain === 'rinkeby') return web3Rinkeby;
-    if(chain === 'kovan') return web3Kovan;
+function getWeb3(chain) {
+    if (chain === 'ropsten') return web3Ropsten
+    if (chain === 'mainnet') return web3Main
+    if (chain === 'rinkeby') return web3Rinkeby
+    if (chain === 'kovan') return web3Kovan
     throw new Error('Unknown chain: ' + chain)
 }
 
 function sendRaw(chain, rawTx) {
     return new Promise((resolve, reject) => {
-        let web3 = getWeb3(chain);
-        var privateKey = new Buffer(process.env.ETHEREUM_KEY, 'hex');
-        var transaction = new Tx(rawTx);
-        transaction.sign(privateKey);
-        var serializedTx = '0x' + transaction.serialize().toString('hex');
+        let web3 = getWeb3(chain)
+        var privateKey = new Buffer(process.env.ETHEREUM_KEY, 'hex')
+        var transaction = new Tx(rawTx)
+        transaction.sign(privateKey)
+        var serializedTx = '0x' + transaction.serialize().toString('hex')
         web3.eth.sendSignedTransaction(serializedTx).on('transactionHash', th => {
             resolve(th)
-        })    
+        })
     })
 }
 
-
-async function sendToAddress(chain, amount, recipientAddress){
+async function sendToAddress(chain, amount, recipientAddress) {
     console.log(`Sending ${amount} wei to ${recipientAddress}`)
-    let web3 = getWeb3(chain);
+    let web3 = getWeb3(chain)
 
     return sendRaw(chain, {
-        "from": process.env.ETHEREUM_ADDRESS, 
-        "gasPrice": web3.utils.numberToHex(await web3.eth.getGasPrice()),
-        "gasLimit": web3.utils.toHex(210000), // 21,000 is standard tx gas limit
-        "to": recipientAddress,
-        "value":  web3.utils.toHex(amount),
-        "nonce": web3.utils.toHex(await web3.eth.getTransactionCount(
-            process.env.ETHEREUM_ADDRESS, 'pending'))
+        from: process.env.ETHEREUM_ADDRESS,
+        gasPrice: web3.utils.numberToHex(await web3.eth.getGasPrice()),
+        gasLimit: web3.utils.toHex(210000), // 21,000 is standard tx gas limit
+        to: recipientAddress,
+        value: web3.utils.toHex(amount),
+        nonce: web3.utils.toHex(
+            await web3.eth.getTransactionCount(process.env.ETHEREUM_ADDRESS, 'pending')
+        ),
     })
 }
 
-
-async function getETHUSDPrice(){
-    let coinbasePriceResponse = await (await fetch('https://api.coinbase.com/v2/prices/ETH-USD/buy')).json()
-    return coinbasePriceResponse.data.amount;
+async function getETHUSDPrice() {
+    let coinbasePriceResponse = await (await fetch(
+        'https://api.coinbase.com/v2/prices/ETH-USD/buy'
+    )).json()
+    return coinbasePriceResponse.data.amount
 }
-
 
 app.get('/widget', async (req, res) => {
     try {
-    let ethPrice = await getETHUSDPrice();
-    const usdAmount = req.query.amount;
-    const ethAmount = usdAmount / ethPrice;
+        let ethPrice = await getETHUSDPrice()
+        const usdAmount = req.query.amount
+        const ethAmount = usdAmount / ethPrice
 
-    if(usdAmount > 25)
-        throw new Error('Transaction can not be more than $25');
+        if (usdAmount > 25) throw new Error('Transaction can not be more than $25')
 
-    var data = {
-        stripe_key: process.env.STRIPE_CLIENT_KEY,
-        eth_address: req.query.address,
-        eth_amount: ethAmount,
-        usd_amount: req.query.amount,
-        chain: req.query.chain,
-        source: req.query.source || 'N/A'
-    }
+        var data = {
+            stripe_key: process.env.STRIPE_CLIENT_KEY,
+            eth_address: req.query.address,
+            eth_amount: ethAmount,
+            usd_amount: req.query.amount,
+            chain: req.query.chain,
+            source: req.query.source || 'N/A',
+        }
 
-    let web3 = getWeb3(req.query.chain)
-    let currentBalance = await web3.eth.getBalance(process.env.ETHEREUM_ADDRESS, 'pending');
+        let web3 = getWeb3(req.query.chain)
+        let currentBalance = await web3.eth.getBalance(process.env.ETHEREUM_ADDRESS, 'pending')
 
-    const BN = x => web3.utils.toBN(x || '0');
+        const BN = x => web3.utils.toBN(x || '0')
 
-    let weiAmount = Math.round(ethAmount * 1e18).toString();
+        let weiAmount = Math.round(ethAmount * 1e18).toString()
 
-    if(BN(currentBalance).lt(BN(weiAmount))){
-        throw new Error('insufficient funds')
-    }
-
-
+        if (BN(currentBalance).lt(BN(weiAmount))) {
+            throw new Error('insufficient funds')
+        }
     } catch (err) {
         var data = {
-            error: err.message
+            error: err.message,
         }
     }
 
     res.render('widget', {
         ...data,
-        b64json: new Buffer(JSON.stringify(data)).toString('base64')
+        b64json: new Buffer(JSON.stringify(data)).toString('base64'),
     })
 })
 
-
 app.post('/charge', async (req, res) => {
-    let ethPrice = await getETHUSDPrice();
+    let ethPrice = await getETHUSDPrice()
     let web3 = getWeb3(req.body.chain)
 
-    console.log(ethPrice);
+    console.log(ethPrice)
     console.log(req.body)
-    let usdAmount = req.body.usd_amount;
-    const ethAmount = usdAmount / ethPrice;
-    
-    if(usdAmount > 25)
-        throw new Error('Transaction can not be more than $25');
+    let usdAmount = req.body.usd_amount
+    const ethAmount = usdAmount / ethPrice
+
+    if (usdAmount > 25) throw new Error('Transaction can not be more than $25')
 
     console.assert(ethAmount < 1, 'ETH amount can not be more than 1 ETH')
 
+    let currentBalance = await web3.eth.getBalance(process.env.ETHEREUM_ADDRESS, 'pending')
 
-    let currentBalance = await web3.eth.getBalance(process.env.ETHEREUM_ADDRESS, 'pending');
+    const BN = x => web3.utils.toBN(x || '0')
 
-    const BN = x => web3.utils.toBN(x || '0');
+    let weiAmount = Math.round(ethAmount * 1e18).toString()
 
-    let weiAmount = Math.round(ethAmount * 1e18).toString();
-
-    if(BN(currentBalance).lt(BN(weiAmount))){
+    if (BN(currentBalance).lt(BN(weiAmount))) {
         throw new Error('insufficient funds')
     }
 
@@ -164,35 +155,47 @@ app.post('/charge', async (req, res) => {
         currency: 'usd',
         description: 'ETH Smart Contract ' + req.body.source,
         source: req.body.token,
-    });
+    })
 
     console.log(charge)
-    const recipientAddress = req.body.address;
+    const recipientAddress = req.body.address
 
     let transactionHash = await sendToAddress(
-        req.body.chain, 
-        web3.utils.toWei(ethAmount.toString(), 'ether'), 
-        recipientAddress)
+        req.body.chain,
+        web3.utils.toWei(ethAmount.toString(), 'ether'),
+        recipientAddress
+    )
 
-    res.end(JSON.stringify({
-        transactionHash: transactionHash
-    }))
+    res.end(
+        JSON.stringify({
+            transactionHash: transactionHash,
+        })
+    )
 })
 
-app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0');
-app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 7777);
+app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0')
+app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 7777)
 
-function serverCallback(){
-  console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
-  console.log('  Press CTRL-C to stop\n');
+function serverCallback() {
+    console.log(
+        '%s App is running at http://localhost:%d in %s mode',
+        chalk.green('✓'),
+        app.get('port'),
+        app.get('env')
+    )
+    console.log('  Press CTRL-C to stop\n')
 }
 
-if(app.get('env') === 'development'){
-    https.createServer({
-      key: fs.readFileSync('server.key'),
-      cert: fs.readFileSync('server.cert')
-    }, app)
-        .listen(app.get('port'), serverCallback);
-}else{
-    app.listen(app.get('port'), serverCallback);    
+if (app.get('env') === 'development') {
+    https
+        .createServer(
+            {
+                key: fs.readFileSync('server.key'),
+                cert: fs.readFileSync('server.cert'),
+            },
+            app
+        )
+        .listen(app.get('port'), serverCallback)
+} else {
+    app.listen(app.get('port'), serverCallback)
 }
